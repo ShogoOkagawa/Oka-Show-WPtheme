@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>WORKS — OKA-SHOW</title>
+<meta name="description" content="OKA-SHOWの制作実績一覧。動画制作・ドローン空撮・Web制作。">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+
+<div class="bg-glow"></div>
+<div id="cur"></div><div id="ring"></div>
+<div id="sp"></div>
+
+<nav>
+  <a href="index.html" class="n-logo"><img src="assets/img/logo.svg" alt="OKA-SHOW"></a>
+  <div class="n-right">
+    <div class="n-pct" id="np">SCROLL 0%</div>
+    <button class="menu-btn" id="menuBtn"><span id="menuLabel">MENU</span><span class="bars"><i></i><i></i></span></button>
+  </div>
+</nav>
+
+<div id="menu">
+  <a class="m-link" href="works.html">WORKS<span>01</span></a>
+  <a class="m-link" href="index.html#about">ABOUT<span>02</span></a>
+  <a class="m-link" href="index.html#services">SERVICES<span>03</span></a>
+  <a class="m-link" href="contact.html">CONTACT<span>04</span></a>
+  <div class="m-foot"><a href="https://www.youtube.com/@shogookagawa5084" target="_blank" rel="noopener">YOUTUBE</a><a href="https://www.instagram.com/show_goon/" target="_blank" rel="noopener">INSTAGRAM</a><a href="https://vimeo.com/user149609341" target="_blank" rel="noopener">VIMEO</a></div>
+</div>
+
+<!-- ページヘッダー -->
+<header class="page-hero">
+  <div class="crumb"><a href="index.html">HOME</a> / WORKS</div>
+  <span class="ph-num">01 — WORKS</span>
+  <h1>SELECTED<br>WORKS</h1>
+  <p class="ph-lead">動画制作・ドローン空撮・Web制作の実績一覧です。カテゴリで絞り込めます。</p>
+</header>
+
+<!-- 一覧 -->
+<section>
+  <div class="filter">
+    <button class="on" data-cat="all">ALL</button>
+    <button data-cat="web">WEB</button>
+    <button data-cat="drone">DRONE</button>
+    <button data-cat="video">VIDEO</button>
+  </div>
+
+  <div class="work-grid">
+    <a href="work-detail.html" class="work-card rv" data-cat="web"><img src="assets/img/works/web-lamure.png" alt="LamuRe"><div class="wc-meta"><div class="wc-cat">WEB / EC</div><div class="wc-ttl">LamuRe</div></div></a>
+    <a href="work-detail.html" class="work-card rv" data-cat="web"><img src="assets/img/works/web-nagoyagym.png" alt="NAGOYA GYM"><div class="wc-meta"><div class="wc-cat">WEB / WORDPRESS</div><div class="wc-ttl">NAGOYA GYM</div></div></a>
+    <a href="work-detail.html" class="work-card rv" data-cat="web"><img src="assets/img/works/web-mazstay.png" alt="mazStay"><div class="wc-meta"><div class="wc-cat">WEB / LP</div><div class="wc-ttl">mazStay</div></div></a>
+    <a href="work-detail.html" class="work-card rv" data-cat="web"><img src="assets/img/works/web-beyond.png" alt="BEYOND"><div class="wc-meta"><div class="wc-cat">WEB / BRAND</div><div class="wc-ttl">BEYOND Beauty</div></div></a>
+    <a href="work-detail.html" class="work-card rv" data-cat="web"><img src="assets/img/works/web-shukyaku.png" alt="WEB MARKETING"><div class="wc-meta"><div class="wc-cat">WEB / 集客</div><div class="wc-ttl">WEB MARKETING</div></div></a>
+    <a href="work-detail.html" class="work-card rv" data-cat="drone"><img src="assets/img/works/drone-seaofclouds.png" alt="SEA OF CLOUDS"><div class="wc-meta"><div class="wc-cat">DRONE / 4K</div><div class="wc-ttl">SEA OF CLOUDS</div></div></a>
+    <a href="work-detail.html" class="work-card rv" data-cat="drone"><img src="assets/img/works/drone-golf.png" alt="GOLF CLUB"><div class="wc-meta"><div class="wc-cat">DRONE</div><div class="wc-ttl">GOLF CLUB AERIAL</div></div></a>
+    <a href="work-detail.html" class="work-card rv" data-cat="video"><img src="assets/img/works/video-sakura.png" alt="CHERRY BLOSSOMS"><div class="wc-meta"><div class="wc-cat">VIDEO</div><div class="wc-ttl">CHERRY BLOSSOMS</div></div></a>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="cta" id="contact">
+  <div class="cta-bg">LET'S CREATE</div>
+  <p class="cta-lb rv">GET IN TOUCH</p>
+  <h2 class="cta-ttl rv">LET'S CREATE<br><span class="out">TOGETHER</span></h2>
+  <div class="rv"><a href="contact.html" class="btn"><span>CONTACT</span><span>→</span></a></div>
+</section>
+
+<footer>
+  <a href="index.html" class="f-logo"><img src="assets/img/logo.svg" alt="OKA-SHOW"></a>
+  <div class="f-copy">© 2025 OKA-SHOW. ALL RIGHTS RESERVED.&nbsp;·&nbsp;<a href="privacy.html">プライバシーポリシー</a></div>
+  <div class="f-sns"><a href="https://www.youtube.com/@shogookagawa5084" target="_blank" rel="noopener">YouTube</a><a href="https://www.instagram.com/show_goon/" target="_blank" rel="noopener">Instagram</a><a href="https://vimeo.com/user149609341" target="_blank" rel="noopener">Vimeo</a></div>
+</footer>
+
+<!-- フローティング操作 -->
+<a class="to-home" href="index.html">← HOME</a>
+<button class="to-top" aria-label="上部へ戻る">↑</button>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+<script src="assets/main.js"></script>
+</body>
+</html>

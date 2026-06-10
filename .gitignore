@@ -1,0 +1,16 @@
+# OS
+.DS_Store
+**/.DS_Store
+
+# ローカル専用ツール（ffmpeg 静的バイナリ・約150MB）
+.tools/
+
+# 動画/画像の元素材（大容量・GitHubの100MB制限超のため除外）
+thumbnail/
+
+# 旧プロトタイプ（base64埋め込みで重い）
+oka-show-v4-reel.html
+
+# 一時ファイル
+*.log
+*.tmp

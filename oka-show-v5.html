@@ -1,0 +1,671 @@
+<!DOCTYPE html>
+<html lang="ja" data-theme="flame">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>OKA-SHOW — Video / Drone / Web Creator</title>
+<meta name="description" content="愛知拠点のフリーランスクリエイター。動画制作・ドローン空撮・Web制作を一気通貫で。">
+
+<!-- ════════ ライブラリ ════════
+     Lenis  = 慣性スムーススクロール（kaitonoteの“ぬるっと”感の正体）
+     GSAP   = アニメーション
+     ScrollTrigger = スクロール連動 -->
+<script src="https://unpkg.com/lenis@1.1.13/dist/lenis.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Anton&family=Noto+Sans+JP:wght@100;300;400;500&family=Space+Mono:wght@400;700&display=swap');
+
+/* ════════════════════════════════════════════
+   配色テーマ（右下スイッチャーで切替え）
+   flame = 青い炎（kaitonote寄せ・推奨）
+   lime  = 黒×蛍光イエロー（現行）
+   mono  = モノトーン（写真主役）
+   ════════════════════════════════════════════ */
+:root,[data-theme="flame"]{
+  --bg:#06080f; --bg2:#0b0f1c; --fg:#eaf0fb;
+  --mid:#586079; --brd:#151b2b;
+  --acc:#3d7bff; --acc2:#27e0d0;
+  --glow:rgba(61,123,255,.45);
+}
+[data-theme="lime"]{
+  --bg:#080808; --bg2:#101010; --fg:#f2ede6;
+  --mid:#666; --brd:#1c1c1c;
+  --acc:#e8ff00; --acc2:#e8ff00;
+  --glow:rgba(232,255,0,.35);
+}
+[data-theme="mono"]{
+  --bg:#0a0a0a; --bg2:#141414; --fg:#fafafa;
+  --mid:#6a6a6a; --brd:#1f1f1f;
+  --acc:#ffffff; --acc2:#bfbfbf;
+  --glow:rgba(255,255,255,.25);
+}
+
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:auto}
+body{
+  background:var(--bg);color:var(--fg);
+  font-family:'Noto Sans JP',sans-serif;font-weight:300;
+  overflow-x:hidden;
+}
+body.lenis,body.lenis *{overscroll-behavior:none}
+img{display:block;max-width:100%}
+a{color:inherit;text-decoration:none}
+.acc{color:var(--acc)}
+.grad{background:linear-gradient(120deg,var(--acc),var(--acc2));-webkit-background-clip:text;background-clip:text;color:transparent}
+
+/* ───── 背景の薄いグラデーション光 ───── */
+.bg-glow{
+  position:fixed;inset:0;z-index:-1;pointer-events:none;
+  background:
+    radial-gradient(60vw 60vw at 80% -10%,var(--glow),transparent 60%),
+    radial-gradient(50vw 50vw at -10% 110%,var(--glow),transparent 55%);
+  opacity:.5;
+}
+
+/* ════════ ローダー ════════ */
+#loader{
+  position:fixed;inset:0;z-index:10000;background:var(--bg);
+  display:flex;align-items:flex-end;justify-content:space-between;
+  padding:48px 56px;
+}
+#loader .ld-word{font-family:'Anton',sans-serif;font-size:clamp(40px,9vw,120px);line-height:.9;letter-spacing:-2px}
+#loader .ld-num{font-family:'Space Mono',monospace;font-size:clamp(40px,9vw,120px);line-height:.9}
+.ld-bar{position:absolute;left:0;bottom:0;height:2px;width:0;background:linear-gradient(90deg,var(--acc),var(--acc2))}
+
+/* ════════ カスタムカーソル（PCのみ・JS転んでも安全） ════════ */
+#cur,#ring{position:fixed;top:0;left:0;pointer-events:none;z-index:9999;border-radius:50%;opacity:0;transition:opacity .3s}
+#cur{width:7px;height:7px;background:var(--acc);transform:translate(-50%,-50%)}
+#ring{width:38px;height:38px;border:1px solid rgba(255,255,255,.4);transform:translate(-50%,-50%);transition:width .3s,height .3s,border-color .3s,opacity .3s}
+#ring.big{width:70px;height:70px;border-color:var(--acc)}
+.cursor-on #cur,.cursor-on #ring{opacity:1}
+.cursor-on,.cursor-on a,.cursor-on button{cursor:none}
+
+/* ════════ スクロール進捗 ════════ */
+#sp{position:fixed;top:0;left:0;height:2px;background:linear-gradient(90deg,var(--acc),var(--acc2));z-index:9000;width:0}
+
+/* ════════ ナビ ════════ */
+nav{
+  position:fixed;top:0;left:0;right:0;z-index:800;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:22px 56px;mix-blend-mode:difference;
+}
+.n-logo{font-family:'Anton',sans-serif;font-size:18px;letter-spacing:5px}
+.n-logo em{color:var(--acc);font-style:normal}
+.n-right{display:flex;align-items:center;gap:26px}
+.n-pct{font-family:'Space Mono',monospace;font-size:9px;letter-spacing:2px;opacity:.5}
+.menu-btn{display:flex;align-items:center;gap:10px;font-family:'Space Mono',monospace;font-size:10px;letter-spacing:3px;background:none;border:none;color:var(--fg)}
+.menu-btn .bars{display:flex;flex-direction:column;gap:4px;width:22px}
+.menu-btn .bars i{height:1.5px;background:var(--fg);display:block;transition:.35s}
+
+/* ════════ フルスクリーンメニュー ════════ */
+#menu{
+  position:fixed;inset:0;z-index:790;background:var(--bg2);
+  clip-path:circle(0% at 100% 0);transition:clip-path .7s cubic-bezier(.76,0,.24,1);
+  display:flex;flex-direction:column;justify-content:center;padding:0 8vw;
+}
+#menu.open{clip-path:circle(150% at 100% 0)}
+.m-link{font-family:'Anton',sans-serif;font-size:clamp(40px,9vw,96px);line-height:1.05;letter-spacing:-1px;color:var(--fg);opacity:.85;transition:.3s;width:fit-content}
+.m-link:hover{color:var(--acc);padding-left:24px}
+.m-link span{font-family:'Space Mono',monospace;font-size:12px;letter-spacing:2px;color:var(--mid);vertical-align:super;margin-left:10px}
+.m-foot{margin-top:48px;display:flex;gap:26px;flex-wrap:wrap}
+.m-foot a{font-family:'Space Mono',monospace;font-size:11px;letter-spacing:2px;color:var(--mid)}
+.m-foot a:hover{color:var(--acc)}
+
+/* ════════ ヒーロー ════════ */
+.hero{height:100vh;position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center}
+/* ★ 動画が読めなくても黒画面にならないよう、背後に必ずグラデを敷く */
+.hero-fallback{position:absolute;inset:0;background:
+  linear-gradient(135deg,var(--bg) 0%,var(--bg2) 50%,var(--bg) 100%);
+  background-size:200% 200%;animation:bgmove 18s ease infinite}
+@keyframes bgmove{0%{background-position:0 0}50%{background-position:100% 100%}100%{background-position:0 0}}
+.hero video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.5}
+.hero-ov{position:absolute;inset:0;background:linear-gradient(to bottom,rgba(6,8,15,.2),rgba(6,8,15,.55) 55%,var(--bg) 100%)}
+.hero-cnt{position:relative;z-index:10;text-align:center;padding:0 24px}
+.h-ey{font-family:'Space Mono',monospace;font-size:9px;letter-spacing:6px;color:var(--acc);margin-bottom:22px}
+.h-ttl{font-family:'Anton',sans-serif;font-size:clamp(64px,13vw,128px);line-height:.86;letter-spacing:-3px}
+.h-ttl .out{-webkit-text-stroke:1.5px var(--fg);color:transparent}
+.h-ovf{overflow:hidden}
+.h-tags{margin-top:26px;display:flex;justify-content:center;gap:12px;flex-wrap:wrap}
+.h-tag{font-family:'Space Mono',monospace;font-size:8px;letter-spacing:3px;padding:5px 14px;border:1px solid rgba(255,255,255,.16);color:var(--mid);border-radius:100px}
+.h-scroll{position:absolute;bottom:34px;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:10px}
+.h-scroll span{font-family:'Space Mono',monospace;font-size:8px;letter-spacing:4px;color:var(--mid)}
+.h-line{width:1px;height:48px;background:linear-gradient(to bottom,var(--mid),var(--acc));animation:la 2s ease-in-out infinite}
+@keyframes la{0%{transform:scaleY(0);transform-origin:top;opacity:0}50%{transform:scaleY(1);transform-origin:top;opacity:1}100%{transform:scaleY(0);transform-origin:bottom;opacity:0}}
+
+/* ════════ マーキー ════════ */
+.mq{overflow:hidden;border-top:1px solid var(--brd);border-bottom:1px solid var(--brd);background:var(--bg2)}
+.mq-tr{display:flex;white-space:nowrap;width:max-content;animation:mqr 26s linear infinite}
+.mi{font-family:'Anton',sans-serif;font-size:clamp(40px,6vw,68px);letter-spacing:-1px;padding:10px 30px;color:transparent;-webkit-text-stroke:1px var(--brd);transition:.3s}
+.mi.lit,.mi:hover{color:var(--acc);-webkit-text-stroke:none}
+.md{font-family:'Anton',sans-serif;font-size:clamp(40px,6vw,68px);color:var(--acc);padding:10px 2px}
+@keyframes mqr{to{transform:translateX(-50%)}}
+
+/* ════════ セクション共通 ════════ */
+section{padding:120px 56px;position:relative}
+.s-hd{display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:64px;flex-wrap:wrap;gap:20px}
+.s-num{font-family:'Space Mono',monospace;font-size:10px;letter-spacing:4px;color:var(--acc)}
+.s-title{font-family:'Anton',sans-serif;font-size:clamp(40px,7vw,88px);line-height:.9;letter-spacing:-2px}
+.s-more{font-family:'Space Mono',monospace;font-size:10px;letter-spacing:2px;color:var(--mid);border-bottom:1px solid var(--brd);padding-bottom:4px;transition:.3s}
+.s-more:hover{color:var(--acc);border-color:var(--acc)}
+
+/* リビール用初期状態（JSで .in 付与） */
+.rv{opacity:0;transform:translateY(40px);transition:opacity .9s cubic-bezier(.22,1,.36,1),transform .9s cubic-bezier(.22,1,.36,1)}
+.rv.in{opacity:1;transform:none}
+
+/* ════════ イントロ大コピー ════════ */
+.intro{padding:140px 56px;max-width:1100px}
+.intro p{font-family:'Noto Sans JP',sans-serif;font-weight:300;font-size:clamp(22px,3.4vw,44px);line-height:1.5;letter-spacing:.5px}
+.intro .ln{display:block;overflow:hidden}
+.intro .ln b{display:inline-block;font-weight:300}
+
+/* ════════ 3Dリールスクロール ════════ */
+.reel-outer{position:relative;height:480vh}
+.reel-stage{position:sticky;top:0;height:100vh;overflow:hidden;background:#000;
+  perspective:1000px;perspective-origin:50% 50%;
+  display:flex;align-items:center;justify-content:center}
+.reel-vbg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;filter:blur(14px);transform:scale(1.08);z-index:0}
+.reel-grad{position:absolute;inset:0;background:linear-gradient(135deg,var(--bg),var(--bg2),#000);background-size:200% 200%;animation:bgmove 18s ease infinite;opacity:.0;z-index:0}
+.reel-blur{position:absolute;inset:0;background:rgba(0,0,0,.4);backdrop-filter:blur(6px);opacity:0;z-index:1}
+.reel-copy{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;z-index:4;pointer-events:none}
+.rcl{overflow:hidden;line-height:1.08;margin:2px 0}
+.rcl-inner{display:block;font-family:'Anton',sans-serif;font-size:clamp(30px,6vw,68px);letter-spacing:-1px}
+.rcl-inner.it{font-family:'Noto Sans JP',sans-serif;font-style:italic;font-weight:100;font-size:clamp(20px,4vw,46px);letter-spacing:3px;color:var(--mid)}
+.rw{position:absolute;width:clamp(260px,32vw,440px);overflow:hidden;border-radius:4px;will-change:transform,opacity}
+.rw img{width:100%;aspect-ratio:16/9;object-fit:cover}
+.rw-label{position:absolute;left:0;right:0;bottom:0;padding:40px 14px 12px;background:linear-gradient(to top,rgba(0,0,0,.9),transparent)}
+.rw-cat{font-family:'Space Mono',monospace;font-size:7px;letter-spacing:3px;padding:2px 9px;border:1px solid rgba(255,255,255,.25);border-radius:100px;background:rgba(0,0,0,.5)}
+.rw-title{font-family:'Anton',sans-serif;font-size:15px;letter-spacing:1px;margin-top:6px}
+.reel-play{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:5;opacity:0;pointer-events:none}
+.reel-play.active{pointer-events:all}
+.play-btn{width:84px;height:84px;border:1px solid rgba(255,255,255,.3);border-radius:50%;display:flex;align-items:center;justify-content:center;transition:.3s}
+.play-btn:hover{border-color:var(--acc);transform:scale(1.08)}
+.play-icon{width:0;height:0;border-left:16px solid var(--fg);border-top:10px solid transparent;border-bottom:10px solid transparent;margin-left:4px}
+.play-text{font-family:'Space Mono',monospace;font-size:10px;letter-spacing:4px;color:var(--fg);margin-top:18px}
+
+/* ════════ WORKS（非対称グリッド） ════════ */
+.wg{display:grid;grid-template-columns:repeat(12,1fr);gap:20px}
+.wc{position:relative;overflow:hidden;border-radius:4px;cursor:pointer}
+.wc img{width:100%;height:100%;object-fit:cover;transition:transform .8s cubic-bezier(.22,1,.36,1)}
+.wc:hover img{transform:scale(1.06)}
+.wc::after{content:"";position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,.7),transparent 55%);opacity:.6;transition:.4s}
+.wc:hover::after{opacity:.85}
+.wc-meta{position:absolute;left:18px;bottom:16px;z-index:2}
+.wc-cat{font-family:'Space Mono',monospace;font-size:8px;letter-spacing:3px;color:var(--acc)}
+.wc-ttl{font-family:'Anton',sans-serif;font-size:clamp(18px,2vw,26px);letter-spacing:0;margin-top:4px}
+.w-lg{grid-column:span 7;aspect-ratio:16/10}
+.w-sm{grid-column:span 5;aspect-ratio:16/11}
+.w-md{grid-column:span 4;aspect-ratio:4/5}
+.w-wide{grid-column:span 8;aspect-ratio:16/8}
+
+/* ════════ ABOUT ════════ */
+.ab-grid{display:grid;grid-template-columns:1fr 1.1fr;gap:64px;align-items:center}
+.ab-photo{position:relative;overflow:hidden;border-radius:4px}
+.ab-photo img{width:100%;aspect-ratio:4/5;object-fit:cover}
+.ab-photo-label{position:absolute;left:18px;bottom:18px;font-family:'Anton',sans-serif;font-size:20px;letter-spacing:1px}
+.ab-photo-label em{display:block;font-family:'Space Mono',monospace;font-size:8px;letter-spacing:2px;color:var(--acc);font-style:normal;margin-top:4px}
+.ab-lead{font-family:'Anton',sans-serif;font-size:clamp(26px,3.4vw,44px);line-height:1.15;letter-spacing:-1px}
+.ab-lead .hl{color:var(--acc)}
+.ab-body{font-size:14px;line-height:2;color:var(--mid);margin:24px 0 28px;max-width:46ch}
+.ab-tags{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:32px}
+.ab-tag{font-family:'Space Mono',monospace;font-size:8px;letter-spacing:2px;padding:6px 12px;border:1px solid var(--brd);border-radius:100px;color:var(--mid)}
+.sk{margin-bottom:14px}
+.sk-nm{font-family:'Space Mono',monospace;font-size:10px;letter-spacing:2px;display:flex;justify-content:space-between}
+.sk-nm span:last-child{color:var(--acc)}
+.sk-bar{height:2px;background:var(--brd);margin-top:8px;overflow:hidden}
+.sk-fill{height:100%;width:0;background:linear-gradient(90deg,var(--acc),var(--acc2));transition:width 1.2s cubic-bezier(.22,1,.36,1)}
+
+/* ════════ STATS ════════ */
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:20px;padding:80px 56px;border-top:1px solid var(--brd);border-bottom:1px solid var(--brd)}
+.st-n{font-family:'Anton',sans-serif;font-size:clamp(40px,6vw,76px);line-height:1;letter-spacing:-2px}
+.st-n .su{color:var(--acc);font-size:.5em}
+.st-l{font-family:'Space Mono',monospace;font-size:9px;letter-spacing:3px;color:var(--mid);margin-top:10px}
+
+/* ════════ SERVICES（アコーディオン） ════════ */
+.sv{border-top:1px solid var(--brd);padding:30px 0;display:flex;gap:28px;cursor:pointer;align-items:flex-start;transition:.3s}
+.sv:last-child{border-bottom:1px solid var(--brd)}
+.sv:hover{padding-left:14px}
+.sv-n{font-family:'Space Mono',monospace;font-size:11px;color:var(--acc);padding-top:8px}
+.sv-bd{flex:1}
+.sv-nm{font-family:'Anton',sans-serif;font-size:clamp(24px,3.2vw,42px);letter-spacing:-1px;display:flex;justify-content:space-between;align-items:center}
+.sv-nm .pl{font-size:.5em;color:var(--mid);transition:.3s}
+.sv.open .sv-nm .pl{transform:rotate(45deg);color:var(--acc)}
+.sv-desc{max-height:0;overflow:hidden;transition:max-height .5s ease,margin .5s ease;font-size:14px;line-height:1.9;color:var(--mid);max-width:60ch}
+.sv.open .sv-desc{max-height:200px;margin-top:16px}
+
+/* ════════ CTA ════════ */
+.cta{text-align:center;padding:140px 24px;position:relative;overflow:hidden}
+.cta-bg{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:'Anton',sans-serif;font-size:clamp(80px,20vw,300px);color:var(--brd);white-space:nowrap;z-index:0;opacity:.5}
+.cta-lb{font-family:'Space Mono',monospace;font-size:10px;letter-spacing:4px;color:var(--acc);position:relative;z-index:1}
+.cta-ttl{font-family:'Anton',sans-serif;font-size:clamp(48px,10vw,128px);line-height:.9;letter-spacing:-3px;margin:18px 0 40px;position:relative;z-index:1}
+.cta-ttl .out{-webkit-text-stroke:1.5px var(--fg);color:transparent}
+.cta-btn{position:relative;z-index:1;font-family:'Space Mono',monospace;font-size:12px;letter-spacing:3px;color:var(--bg);background:var(--acc);border:none;padding:20px 44px;border-radius:100px;display:inline-flex;gap:8px;transition:.3s}
+.cta-btn:hover{gap:18px;box-shadow:0 0 40px var(--glow)}
+
+/* ════════ フッター ════════ */
+footer{padding:48px 56px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px;border-top:1px solid var(--brd)}
+.f-logo{font-family:'Anton',sans-serif;font-size:18px;letter-spacing:4px}
+.f-copy,.f-sns a{font-family:'Space Mono',monospace;font-size:9px;letter-spacing:2px;color:var(--mid)}
+.f-sns{display:flex;gap:20px}
+.f-sns a:hover{color:var(--acc)}
+
+/* ════════ テーマスイッチャー ════════ */
+.theme-sw{position:fixed;right:18px;bottom:18px;z-index:900;display:flex;gap:8px;background:rgba(0,0,0,.4);backdrop-filter:blur(8px);padding:8px;border:1px solid var(--brd);border-radius:100px}
+.theme-sw button{width:22px;height:22px;border-radius:50%;border:1px solid rgba(255,255,255,.3);cursor:pointer}
+.theme-sw button.on{outline:2px solid var(--fg);outline-offset:2px}
+.sw-flame{background:linear-gradient(120deg,#3d7bff,#27e0d0)}
+.sw-lime{background:#e8ff00}
+.sw-mono{background:linear-gradient(120deg,#fff,#777)}
+
+/* ════════ レスポンシブ ════════ */
+@media(max-width:860px){
+  nav,section,.intro,.stats,footer{padding-left:24px;padding-right:24px}
+  .ab-grid{grid-template-columns:1fr;gap:32px}
+  .stats{grid-template-columns:repeat(2,1fr);gap:32px 20px}
+  .wg{grid-template-columns:repeat(6,1fr)}
+  .w-lg,.w-sm,.w-md,.w-wide{grid-column:span 6;aspect-ratio:16/10}
+  .n-pct{display:none}
+  /* モバイルは3Dリールを短く＆軽量化 */
+  .reel-outer{height:300vh}
+}
+@media(prefers-reduced-motion:reduce){
+  *{animation:none!important}
+  .rv{opacity:1;transform:none}
+}
+</style>
+</head>
+<body>
+
+<div class="bg-glow"></div>
+
+<!-- ════ ローダー ════ -->
+<div id="loader">
+  <div class="ld-word">OKA<span class="acc">.</span></div>
+  <div class="ld-num" id="ldNum">0</div>
+  <div class="ld-bar" id="ldBar"></div>
+</div>
+
+<!-- ════ カーソル ════ -->
+<div id="cur"></div>
+<div id="ring"></div>
+
+<!-- ════ 進捗 ════ -->
+<div id="sp"></div>
+
+<!-- ════ ナビ ════ -->
+<nav>
+  <a href="#top" class="n-logo">OKA<em>.</em></a>
+  <div class="n-right">
+    <div class="n-pct" id="np">SCROLL 0%</div>
+    <button class="menu-btn" id="menuBtn">
+      <span id="menuLabel">MENU</span>
+      <span class="bars"><i></i><i></i></span>
+    </button>
+  </div>
+</nav>
+
+<!-- ════ メニュー ════ -->
+<div id="menu">
+  <a class="m-link" href="#works">WORKS<span>01</span></a>
+  <a class="m-link" href="#about">ABOUT<span>02</span></a>
+  <a class="m-link" href="#services">SERVICES<span>03</span></a>
+  <a class="m-link" href="#contact">CONTACT<span>04</span></a>
+  <div class="m-foot">
+    <a href="#">YOUTUBE</a><a href="#">INSTAGRAM</a><a href="#">VIMEO</a><a href="#">X</a>
+  </div>
+</div>
+
+<!-- ════ ヒーロー ════ -->
+<div class="hero" id="top">
+  <div class="hero-fallback"></div>
+  <!-- ★ ここに本番動画を入れる。読めない時も背後のグラデで黒画面にならない -->
+  <video autoplay muted loop playsinline poster="">
+    <source src="hero.mp4" type="video/mp4">
+  </video>
+  <div class="hero-ov"></div>
+  <div class="hero-cnt">
+    <p class="h-ey" data-hero>AICHI, JAPAN — VIDEOGRAPHER / DRONE / WEB</p>
+    <h1 class="h-ttl">
+      <span class="h-ovf"><span data-hero style="display:inline-block">CRAFT</span></span><br>
+      <span class="h-ovf"><span class="out" data-hero style="display:inline-block">YOUR</span></span><br>
+      <span class="h-ovf"><span class="grad" data-hero style="display:inline-block">VISION</span></span>
+    </h1>
+    <div class="h-tags">
+      <span class="h-tag" data-hero>VIDEO PRODUCTION</span>
+      <span class="h-tag" data-hero>DRONE SHOOTING</span>
+      <span class="h-tag" data-hero>WEB DESIGN</span>
+    </div>
+  </div>
+  <div class="h-scroll"><span>SCROLL</span><div class="h-line"></div></div>
+</div>
+
+<!-- ════ マーキー ════ -->
+<div class="mq">
+  <div class="mq-tr" id="mqTr">
+    <!-- JSで複製 -->
+    <span class="mi lit">VIDEO</span><span class="md">·</span>
+    <span class="mi">DRONE</span><span class="md">·</span>
+    <span class="mi">WEB</span><span class="md">·</span>
+    <span class="mi">MOTION</span><span class="md">·</span>
+    <span class="mi">AERIAL</span><span class="md">·</span>
+    <span class="mi">CREATIVE</span><span class="md">·</span>
+  </div>
+</div>
+
+<!-- ════ イントロ大コピー ════ -->
+<div class="intro">
+  <p>
+    <span class="ln"><b>映像・ドローン・Webを、</b></span>
+    <span class="ln"><b><span class="acc">一気通貫</span>で手がける。</b></span>
+    <span class="ln"><b>見た人の記憶に残る</b></span>
+    <span class="ln"><b>体験を、ひとつのチームで。</b></span>
+  </p>
+</div>
+
+<!-- ════ 3Dリールスクロール ════ -->
+<div class="reel-outer" id="reelOuter">
+  <div class="reel-stage" id="reelStage">
+    <div class="reel-grad" id="reelGrad"></div>
+    <video class="reel-vbg" id="reelVbg" muted loop playsinline>
+      <source src="reel-bg.mp4" type="video/mp4">
+    </video>
+    <div class="reel-blur" id="reelBlur"></div>
+
+    <div class="reel-copy" id="reelCopy">
+      <div class="rcl"><span class="rcl-inner it">Rebuilding</span></div>
+      <div class="rcl"><span class="rcl-inner">EXPRESSION,</span></div>
+      <div class="rcl"><span class="rcl-inner it">Continuously Pursuing</span></div>
+      <div class="rcl"><span class="rcl-inner grad">UNIQUE CREATIONS.</span></div>
+    </div>
+
+    <!-- サムネイル群（本番では実案件画像に差し替え） -->
+    <div class="rw" data-x="-380" data-y="-200">
+      <img src="https://picsum.photos/seed/oka1/640/360" alt="">
+      <div class="rw-label"><span class="rw-cat">DRONE</span><div class="rw-title">SEA OF CLOUDS</div></div>
+    </div>
+    <div class="rw" data-x="360" data-y="-150">
+      <img src="https://picsum.photos/seed/oka2/640/360" alt="">
+      <div class="rw-label"><span class="rw-cat">VIDEO</span><div class="rw-title">BRAND FILM</div></div>
+    </div>
+    <div class="rw" data-x="-300" data-y="180">
+      <img src="https://picsum.photos/seed/oka3/640/360" alt="">
+      <div class="rw-label"><span class="rw-cat">WEB</span><div class="rw-title">CORPORATE SITE</div></div>
+    </div>
+    <div class="rw" data-x="340" data-y="200">
+      <img src="https://picsum.photos/seed/oka4/640/360" alt="">
+      <div class="rw-label"><span class="rw-cat">DRONE</span><div class="rw-title">AERIAL TOUR</div></div>
+    </div>
+    <div class="rw" data-x="0" data-y="-60">
+      <img src="https://picsum.photos/seed/oka5/640/360" alt="">
+      <div class="rw-label"><span class="rw-cat">VIDEO</span><div class="rw-title">EVENT MOVIE</div></div>
+    </div>
+    <div class="rw" data-x="-60" data-y="120">
+      <img src="https://picsum.photos/seed/oka6/640/360" alt="">
+      <div class="rw-label"><span class="rw-cat">WEB</span><div class="rw-title">LP DESIGN</div></div>
+    </div>
+
+    <div class="reel-play" id="reelPlay">
+      <div class="play-btn"><div class="play-icon"></div></div>
+      <p class="play-text">PLAY SHOWREEL 2025</p>
+    </div>
+  </div>
+</div>
+
+<!-- ════ WORKS ════ -->
+<section id="works">
+  <div class="s-hd rv">
+    <div><span class="s-num">01 — WORKS</span><h2 class="s-title">SELECTED</h2></div>
+    <a href="#" class="s-more">ALL WORKS →</a>
+  </div>
+  <div class="wg">
+    <div class="wc w-lg rv"><img src="https://picsum.photos/seed/w1/900/560" alt=""><div class="wc-meta"><div class="wc-cat">DRONE / 4K</div><div class="wc-ttl">SEA OF CLOUDS</div></div></div>
+    <div class="wc w-sm rv"><img src="https://picsum.photos/seed/w2/700/480" alt=""><div class="wc-meta"><div class="wc-cat">VIDEO</div><div class="wc-ttl">BRAND FILM</div></div></div>
+    <div class="wc w-md rv"><img src="https://picsum.photos/seed/w3/500/620" alt=""><div class="wc-meta"><div class="wc-cat">WEB</div><div class="wc-ttl">CORPORATE</div></div></div>
+    <div class="wc w-wide rv"><img src="https://picsum.photos/seed/w4/1000/500" alt=""><div class="wc-meta"><div class="wc-cat">VIDEO / EVENT</div><div class="wc-ttl">LIVE DOCUMENTARY</div></div></div>
+    <div class="wc w-sm rv"><img src="https://picsum.photos/seed/w5/700/480" alt=""><div class="wc-meta"><div class="wc-cat">DRONE</div><div class="wc-ttl">AERIAL TOUR</div></div></div>
+    <div class="wc w-lg rv"><img src="https://picsum.photos/seed/w6/900/560" alt=""><div class="wc-meta"><div class="wc-cat">WEB / DESIGN</div><div class="wc-ttl">LANDING PAGE</div></div></div>
+  </div>
+</section>
+
+<!-- ════ ABOUT ════ -->
+<section id="about">
+  <div class="s-hd rv">
+    <div><span class="s-num">02 — ABOUT</span><h2 class="s-title">WHO I AM</h2></div>
+    <a href="#" class="s-more">PROFILE →</a>
+  </div>
+  <div class="ab-grid">
+    <div class="ab-photo rv">
+      <img src="https://picsum.photos/seed/portrait/600/750" alt="">
+      <div class="ab-photo-label">SHOGO OKAGAWA<em>VIDEOGRAPHER / DRONE PILOT / WEB CREATOR</em></div>
+    </div>
+    <div class="rv">
+      <p class="ab-lead">映像・ドローン・Webを<br><span class="hl">一気通貫</span>で<br>手がけるクリエイター</p>
+      <p class="ab-body">愛知県を拠点に、動画制作・ドローン空撮・Web制作を一体で手がけるフリーランスクリエイター。企画から撮影、編集、Web実装までワンストップで対応し、「見た人の印象に残る」表現を追求しています。</p>
+      <div class="ab-tags">
+        <span class="ab-tag">AICHI, JAPAN</span><span class="ab-tag">FREELANCE</span>
+        <span class="ab-tag">DRONE CERTIFIED</span><span class="ab-tag">SONY FX / DJI</span>
+      </div>
+      <div class="sk-list" id="skls">
+        <div class="sk"><div class="sk-nm"><span>VIDEO PRODUCTION</span><span>95%</span></div><div class="sk-bar"><div class="sk-fill" data-p="95"></div></div></div>
+        <div class="sk"><div class="sk-nm"><span>DRONE SHOOTING</span><span>88%</span></div><div class="sk-bar"><div class="sk-fill" data-p="88"></div></div></div>
+        <div class="sk"><div class="sk-nm"><span>WEB DESIGN</span><span>90%</span></div><div class="sk-bar"><div class="sk-fill" data-p="90"></div></div></div>
+        <div class="sk"><div class="sk-nm"><span>COLOR GRADING</span><span>85%</span></div><div class="sk-bar"><div class="sk-fill" data-p="85"></div></div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ════ STATS ════ -->
+<div class="stats">
+  <div class="st rv"><div class="st-n"><span class="ctr" data-t="150">0</span><span class="su">+</span></div><div class="st-l">PROJECTS</div></div>
+  <div class="st rv"><div class="st-n"><span class="ctr" data-t="8">0</span><span class="su">Y</span></div><div class="st-l">EXPERIENCE</div></div>
+  <div class="st rv"><div class="st-n"><span class="ctr" data-t="40">0</span><span class="su">+</span></div><div class="st-l">DRONE SPOTS</div></div>
+  <div class="st rv"><div class="st-n"><span class="ctr" data-t="98">0</span><span class="su">%</span></div><div class="st-l">SATISFACTION</div></div>
+</div>
+
+<!-- ════ SERVICES ════ -->
+<section id="services">
+  <div class="s-hd rv"><div><span class="s-num">03 — SERVICES</span><h2 class="s-title">WHAT I DO</h2></div></div>
+  <div class="rv">
+    <div class="sv"><span class="sv-n">01</span><div class="sv-bd"><div class="sv-nm">VIDEO PRODUCTION<span class="pl">+</span></div><div class="sv-desc">企業VP・ブランドフィルム・イベント記録・SNS縦型動画まで。企画構成から撮影・編集・カラーグレーディングまでワンストップ。SONY FXシネマラインで撮影します。</div></div></div>
+    <div class="sv"><span class="sv-n">02</span><div class="sv-bd"><div class="sv-nm">DRONE SHOOTING<span class="pl">+</span></div><div class="sv-desc">国土交通省認定ドローンオペレーターによる空撮。風景・施設・イベントの俯瞰映像で、地上撮影では出せないスケール感を演出します。各種申請にも対応。</div></div></div>
+    <div class="sv"><span class="sv-n">03</span><div class="sv-bd"><div class="sv-nm">WEB DESIGN & DEV<span class="pl">+</span></div><div class="sv-desc">WordPressオリジナルテーマ開発からLP制作まで。デザイン・コーディング・公開後の運用まで対応。映像と連動した“動くWeb”が得意です。</div></div></div>
+  </div>
+</section>
+
+<!-- ════ CTA ════ -->
+<section class="cta" id="contact">
+  <div class="cta-bg">LET'S CREATE</div>
+  <p class="cta-lb rv">GET IN TOUCH</p>
+  <h2 class="cta-ttl rv">LET'S CREATE<br><span class="out">TOGETHER</span></h2>
+  <div class="rv"><button class="cta-btn"><span>CONTACT</span><span>→</span></button></div>
+</section>
+
+<footer>
+  <div class="f-logo">OKA-SHOW</div>
+  <div class="f-copy">© 2025 OKA-SHOW. ALL RIGHTS RESERVED.</div>
+  <div class="f-sns"><a href="#">YouTube</a><a href="#">Instagram</a><a href="#">X</a><a href="#">Vimeo</a></div>
+</footer>
+
+<!-- ════ テーマスイッチャー ════ -->
+<div class="theme-sw" id="themeSw">
+  <button class="sw-flame on" data-t="flame" title="Blue Flame（推奨）"></button>
+  <button class="sw-lime" data-t="lime" title="Lime（現行）"></button>
+  <button class="sw-mono" data-t="mono" title="Monotone"></button>
+</div>
+
+<script>
+gsap.registerPlugin(ScrollTrigger);
+var isTouch = matchMedia('(hover:none)').matches || matchMedia('(max-width:860px)').matches;
+
+/* ════════ スムーススクロール ════════
+   ※ Lenisがスクロールを横取りして止まる不具合のため、現在はネイティブスクロールを使用。
+     なめらか化を戻したい時は USE_LENIS=true にする（要追加検証）。 */
+var USE_LENIS = false;
+var lenis = null;
+try {
+  if (USE_LENIS && typeof Lenis === 'function' && !isTouch) {
+    lenis = new Lenis({ duration:1.15, smoothWheel:true, smoothTouch:false });
+    lenis.on('scroll', ScrollTrigger.update);
+    gsap.ticker.add(function(t){ lenis.raf(t*1000); });
+    gsap.ticker.lagSmoothing(0);
+    document.body.classList.add('lenis');
+  }
+} catch(err){ console.warn('Lenis init skipped:', err); lenis = null; }
+/* ネイティブ時はCSSのスムーススクロールを有効化 */
+if(!lenis) document.documentElement.style.scrollBehavior = 'smooth';
+
+/* スクロール購読の共通ヘルパー（Lenis有無どちらでも動く） */
+function onScroll(fn){
+  if (lenis) lenis.on('scroll', fn);
+  else addEventListener('scroll', fn, {passive:true});
+}
+function scrollToEl(el){
+  if (lenis) lenis.scrollTo(el,{offset:0});
+  else el.scrollIntoView({behavior:'smooth'});
+}
+
+/* メニュー内リンクでスムーススクロール */
+document.querySelectorAll('a[href^="#"]').forEach(function(a){
+  a.addEventListener('click', function(e){
+    var el = document.querySelector(a.getAttribute('href'));
+    if(el){ e.preventDefault(); closeMenu(); scrollToEl(el); }
+  });
+});
+
+/* ════════ ローダー ════════ */
+(function(){
+  var n=document.getElementById('ldNum'), bar=document.getElementById('ldBar'),
+      ld=document.getElementById('loader'), v=0;
+  var iv=setInterval(function(){
+    v += Math.random()*12+4; if(v>=100){v=100;clearInterval(iv);finish();}
+    n.textContent=Math.round(v); bar.style.width=v+'%';
+  },90);
+  function finish(){
+    gsap.to(ld,{yPercent:-100,duration:.9,ease:'power3.inOut',delay:.2,onComplete:function(){ld.style.display='none';}});
+    // ヒーロー文字を順に出す
+    gsap.to('[data-hero]',{y:0,opacity:1,duration:1,stagger:.08,ease:'power3.out',delay:.5});
+  }
+  // 初期：ヒーロー文字を隠す
+  gsap.set('[data-hero]',{y:30,opacity:0});
+})();
+
+/* ════════ カーソル（PCのみ） ════════ */
+if(!isTouch){
+  document.body.classList.add('cursor-on');
+  var cur=document.getElementById('cur'), ring=document.getElementById('ring');
+  var mx=0,my=0,rx=0,ry=0;
+  addEventListener('mousemove',function(e){mx=e.clientX;my=e.clientY;cur.style.left=mx+'px';cur.style.top=my+'px';});
+  (function r(){rx+=(mx-rx)*.15;ry+=(my-ry)*.15;ring.style.left=rx+'px';ring.style.top=ry+'px';requestAnimationFrame(r);})();
+  document.querySelectorAll('a,button,.wc,.sv,.play-btn,.m-link').forEach(function(el){
+    el.addEventListener('mouseenter',function(){ring.classList.add('big');});
+    el.addEventListener('mouseleave',function(){ring.classList.remove('big');});
+  });
+}
+
+/* ════════ 進捗バー ════════ */
+var sp=document.getElementById('sp'), np=document.getElementById('np');
+onScroll(function(){
+  var p=Math.round(scrollY/(document.documentElement.scrollHeight-innerHeight)*100)||0;
+  sp.style.width=p+'%'; np.textContent='SCROLL '+p+'%';
+});
+
+/* ════════ メニュー開閉 ════════ */
+var menu=document.getElementById('menu'), mBtn=document.getElementById('menuBtn'), mLabel=document.getElementById('menuLabel');
+function closeMenu(){menu.classList.remove('open');mLabel.textContent='MENU';}
+mBtn.addEventListener('click',function(){
+  menu.classList.toggle('open');
+  mLabel.textContent=menu.classList.contains('open')?'CLOSE':'MENU';
+});
+
+/* ════════ マーキー無限ループ用に複製 ════════ */
+(function(){var tr=document.getElementById('mqTr');tr.innerHTML+=tr.innerHTML;})();
+
+/* ════════ リビール（ScrollTrigger） ════════ */
+gsap.utils.toArray('.rv').forEach(function(el){
+  ScrollTrigger.create({trigger:el,start:'top 88%',onEnter:function(){el.classList.add('in');}});
+});
+
+/* イントロの行を1行ずつ */
+gsap.utils.toArray('.intro .ln b').forEach(function(b,i){
+  gsap.from(b,{yPercent:110,opacity:0,duration:1,ease:'power3.out',
+    scrollTrigger:{trigger:b,start:'top 90%'}});
+});
+
+/* スキルバー */
+ScrollTrigger.create({trigger:'#skls',start:'top 80%',once:true,onEnter:function(){
+  document.querySelectorAll('.sk-fill').forEach(function(f){f.style.width=f.dataset.p+'%';});
+}});
+
+/* カウンター */
+function animC(el){
+  if(el._d)return; el._d=true;
+  var T=+el.dataset.t,D=1600,S=performance.now();
+  (function step(now){var t=Math.min((now-S)/D,1),e=1-Math.pow(1-t,4);
+    el.textContent=Math.round(e*T); if(t<1)requestAnimationFrame(step);})(S);
+}
+ScrollTrigger.create({trigger:'.stats',start:'top 80%',once:true,onEnter:function(){
+  document.querySelectorAll('.ctr').forEach(animC);
+}});
+
+/* サービスアコーディオン */
+document.querySelectorAll('.sv').forEach(function(s){
+  s.addEventListener('click',function(){s.classList.toggle('open');});
+});
+
+/* ════════ ★ 3Dリールスクロール ════════ */
+(function(){
+  var outer=document.getElementById('reelOuter'),
+      copyEl=document.getElementById('reelCopy'),
+      vbg=document.getElementById('reelVbg'),
+      grad=document.getElementById('reelGrad'),
+      blur=document.getElementById('reelBlur'),
+      play=document.getElementById('reelPlay'),
+      rws=document.querySelectorAll('.rw');
+
+  gsap.set(copyEl,{opacity:0});
+  gsap.set(copyEl.querySelectorAll('.rcl-inner'),{y:'105%'});
+  gsap.set([vbg,grad,blur,play],{opacity:0});
+
+  // モバイルは奥行きを浅く＝負荷軽減
+  var ZBACK = isTouch ? -1400 : -3000;
+  var ZFRONT = 80, ZPASS = isTouch ? 900 : 1800;
+  rws.forEach(function(w){gsap.set(w,{x:+w.dataset.x||0,y:+w.dataset.y||0,z:ZBACK,opacity:0,force3D:true});});
+
+  var tl=gsap.timeline({scrollTrigger:{trigger:outer,start:'top top',end:'bottom bottom',scrub:1}});
+
+  // Phase1 コピー
+  tl.to(copyEl,{opacity:1,duration:.3},0)
+    .to(copyEl.querySelectorAll('.rcl-inner'),{y:'0%',stagger:.07,duration:.5,ease:'power3.out'},.02)
+    .to(copyEl,{opacity:0,duration:.4,ease:'power2.in'},1.2);
+
+  // Phase2 サムネイル（奥→手前→通過）
+  var IN=2.0,STAY=isTouch?2.5:4.0,OUT=1.0;
+  rws.forEach(function(w,i){
+    var t0=2.0+i*1.5, tOut=t0+IN+STAY;
+    tl.to(w,{z:ZFRONT,opacity:1,duration:IN,ease:'power2.out',force3D:true},t0)
+      .to(w,{z:ZPASS,opacity:0,duration:OUT,ease:'power3.in',force3D:true},tOut);
+  });
+
+  // Phase3 背景＋PLAY（動画なければグラデを表示）
+  var hasVid = vbg.querySelector('source') && vbg.querySelector('source').getAttribute('src');
+  tl.to(hasVid?vbg:grad,{opacity:hasVid?1:.8,duration:1.5,ease:'power2.inOut'},14.5)
+    .to(blur,{opacity:1,duration:1.2,ease:'power2.out'},15.0)
+    .to(play,{opacity:1,duration:1.2,ease:'power2.out'},15.5);
+
+  ScrollTrigger.create({trigger:outer,start:'bottom 35%',
+    onEnter:function(){play.classList.add('active'); if(hasVid)vbg.play&&vbg.play();},
+    onLeaveBack:function(){play.classList.remove('active');}});
+})();
+
+/* ════════ テーマスイッチャー ════════ */
+document.getElementById('themeSw').addEventListener('click',function(e){
+  var b=e.target.closest('button'); if(!b)return;
+  document.documentElement.setAttribute('data-theme',b.dataset.t);
+  this.querySelectorAll('button').forEach(function(x){x.classList.remove('on');});
+  b.classList.add('on');
+});
+</script>
+</body>
+</html>
