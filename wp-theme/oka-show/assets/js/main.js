@@ -3,6 +3,18 @@
    各ページの該当要素が無い場合は自動でスキップする作り
    ════════════════════════════════════════════════════════════ */
 (function(){
+  /* ════ リロード時は必ず先頭(ヒーロー)から開始 ════
+     Chrome はスクロール復元のタイミングが遅いので、複数回・スムーズ無効で強制 */
+  if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
+  function toTopNow(){
+    var h=document.documentElement, prev=h.style.scrollBehavior;
+    h.style.scrollBehavior='auto'; window.scrollTo(0,0); h.style.scrollBehavior=prev;
+  }
+  toTopNow();
+  addEventListener('DOMContentLoaded', toTopNow);
+  addEventListener('load', function(){ toTopNow(); setTimeout(toTopNow,60); setTimeout(toTopNow,250); });
+  addEventListener('pageshow', function(e){ if(e.persisted) toTopNow(); });
+
   var hasGSAP = (typeof gsap !== 'undefined');
   if (hasGSAP && typeof ScrollTrigger !== 'undefined') gsap.registerPlugin(ScrollTrigger);
   var isTouch = matchMedia('(hover:none)').matches || matchMedia('(max-width:860px)').matches;
@@ -79,14 +91,6 @@
     a.addEventListener('click',function(e){
       var id=a.getAttribute('href'); if(id.length<2)return;
       var el=$(id); if(el){e.preventDefault();closeMenu();el.scrollIntoView({behavior:'smooth'});}
-    });
-  });
-  /* メニュー内リンクは必ずモーダルを閉じる（別ページURL / #付きフルURLも対応） */
-  $$('#menu a').forEach(function(a){
-    a.addEventListener('click',function(e){
-      closeMenu();
-      var href=a.getAttribute('href')||''; var hi=href.indexOf('#');
-      if(hi>-1){ var el=$(href.substring(hi)); if(el){ e.preventDefault(); el.scrollIntoView({behavior:'smooth'}); } }
     });
   });
 
@@ -184,9 +188,8 @@
     gsap.set(copyEl,{opacity:0});
     gsap.set($$('.rcl-inner',copyEl),{y:'105%'});
     gsap.set([vbg,grad,blur,play],{opacity:0});
-    gsap.set(play,{pointerEvents:'none'});   // PLAY MOREは表示時のみ有効化
     var ZBACK=isTouch?-1400:-3000, ZFRONT=80, ZPASS=isTouch?900:1800;
-    rws.forEach(function(w){gsap.set(w,{x:+w.dataset.x||0,y:+w.dataset.y||0,z:ZBACK,opacity:0,pointerEvents:'none',force3D:true});});
+    rws.forEach(function(w){gsap.set(w,{x:+w.dataset.x||0,y:+w.dataset.y||0,z:ZBACK,opacity:0,force3D:true});});
     var tl=gsap.timeline({scrollTrigger:{trigger:outer,start:'top top',end:'bottom bottom',scrub:2}}); // ★ ぬるっと
     tl.to(copyEl,{opacity:1,duration:.3},0)
       .to($$('.rcl-inner',copyEl),{y:'0%',stagger:.07,duration:.5,ease:'power3.out'},.02)
@@ -194,11 +197,8 @@
     var IN=2.0,STAY=isTouch?2.5:4.0,OUT=1.0;
     rws.forEach(function(w,i){
       var t0=2.0+i*1.5, tOut=t0+IN+STAY;
-      // 表示中（手前にある間）だけクリック可能に → 通過後の透明サムネがPLAY MOREを遮らない
-      tl.set(w,{pointerEvents:'auto'}, t0)
-        .to(w,{z:ZFRONT,opacity:1,duration:IN,ease:'power2.out',force3D:true},t0)
-        .to(w,{z:ZPASS,opacity:0,duration:OUT,ease:'power3.in',force3D:true},tOut)
-        .set(w,{pointerEvents:'none'}, tOut+OUT);
+      tl.to(w,{z:ZFRONT,opacity:1,duration:IN,ease:'power2.out',force3D:true},t0)
+        .to(w,{z:ZPASS,opacity:0,duration:OUT,ease:'power3.in',force3D:true},tOut);
     });
     var src=vbg&&vbg.querySelector('source');
     var hasVid=src&&src.getAttribute('src');
@@ -207,9 +207,10 @@
     tl.to(hasVid?vbg:grad,{opacity:hasVid?1:.8,duration:1.5,ease:'power2.inOut'},14.5)
       .to(blur,{opacity:1,duration:1.2,ease:'power2.out'},15.0)
       .to(play,{opacity:1,duration:1.2,ease:'power2.out'},15.5)
-      .set(play,{pointerEvents:'auto'},15.5)   // 表示と同時にクリック可能
       .to({},{duration:8});   // ★ 余韻：映像を固定表示したままスクロールを稼ぐ
-    if(hasVid&&vbg.play) vbg.play();
+    ScrollTrigger.create({trigger:outer,start:'bottom 35%',
+      onEnter:function(){play.classList.add('active'); if(hasVid&&vbg.play)vbg.play();},
+      onLeaveBack:function(){play.classList.remove('active');}});
   }
 
 })();

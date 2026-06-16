@@ -3,6 +3,18 @@
    各ページの該当要素が無い場合は自動でスキップする作り
    ════════════════════════════════════════════════════════════ */
 (function(){
+  /* ════ リロード時は必ず先頭(ヒーロー)から開始 ════
+     Chrome はスクロール復元のタイミングが遅いので、複数回・スムーズ無効で強制 */
+  if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
+  function toTopNow(){
+    var h=document.documentElement, prev=h.style.scrollBehavior;
+    h.style.scrollBehavior='auto'; window.scrollTo(0,0); h.style.scrollBehavior=prev;
+  }
+  toTopNow();
+  addEventListener('DOMContentLoaded', toTopNow);
+  addEventListener('load', function(){ toTopNow(); setTimeout(toTopNow,60); setTimeout(toTopNow,250); });
+  addEventListener('pageshow', function(e){ if(e.persisted) toTopNow(); });
+
   var hasGSAP = (typeof gsap !== 'undefined');
   if (hasGSAP && typeof ScrollTrigger !== 'undefined') gsap.registerPlugin(ScrollTrigger);
   var isTouch = matchMedia('(hover:none)').matches || matchMedia('(max-width:860px)').matches;

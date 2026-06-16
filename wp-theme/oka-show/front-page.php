@@ -7,7 +7,7 @@ $contact_url = home_url('/contact/');
 <!-- ヒーロー -->
 <div class="hero" id="top">
   <div class="hero-fallback"></div>
-  <div id="energy-core"></div>
+  <div id="energy-core" data-video="<?php echo esc_url($tpl); ?>/assets/video/hero-ascii.mp4"></div>
   <div class="hero-ov"></div>
   <div class="hero-cnt">
     <p class="h-ey" data-hero>AICHI, JAPAN — <span id="roleRoll" data-words="WEB DEVELOPER,SYSTEM ENGINEER,WEB DESIGNER,DRONE PILOT,VIDEOGRAPHER">WEB DEVELOPER</span></p>
