@@ -7,7 +7,7 @@
  */
 if (!defined('ABSPATH')) exit;
 
-define('OKA_VER', '1.0.0');
+define('OKA_VER', '1.1.1');
 
 /* Contact Form 7 の自動 <p>/<br> 挿入を無効化（フォームのグリッド崩れ防止） */
 add_filter('wpcf7_autop_or_not', '__return_false');

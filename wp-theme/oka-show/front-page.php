@@ -184,6 +184,6 @@ $contact_url = home_url('/contact/');
   "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
 }}
 </script>
-<script type="module" src="<?php echo esc_url($tpl); ?>/assets/js/energy-core.js"></script>
+<script type="module" src="<?php echo esc_url($tpl); ?>/assets/js/energy-core.js?ver=<?php echo OKA_VER; ?>"></script>
 
 <?php get_footer(); ?>

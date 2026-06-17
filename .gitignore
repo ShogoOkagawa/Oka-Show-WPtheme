@@ -14,3 +14,6 @@ oka-show-v4-reel.html
 # 一時ファイル
 *.log
 *.tmp
+
+# テーマ配布ZIP（生成物）
+wp-theme/oka-show.zip

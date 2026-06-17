@@ -85,7 +85,12 @@
     if (video.paused) tryPlay();                 // 停止中なら再生を試み続ける
     if (video.readyState < 2 || tainted) return;
 
-    sctx.drawImage(video, 0, 0, cols, rows);
+    // 動画を画面アスペクトに cover(中央切り抜き)でサンプリング → 上下/左右に空白を作らない
+    const vw=video.videoWidth||16, vh=video.videoHeight||9, cAsp=W/H, vAsp=vw/vh;
+    let sw,sh,sx,sy;
+    if (vAsp > cAsp){ sh=vh; sw=vh*cAsp; sx=(vw-sw)/2; sy=0; }   // 横長 → 左右を切る
+    else            { sw=vw; sh=vw/cAsp; sx=0; sy=(vh-sh)/2; }   // 縦長 → 上下を切る
+    sctx.drawImage(video, sx, sy, sw, sh, 0, 0, cols, rows);
     let data;
     try { data = sctx.getImageData(0,0,cols,rows).data; }
     catch(err){ fallback(); return; }    // file:// などで読めない時の保険
